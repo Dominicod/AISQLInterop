@@ -3,13 +3,15 @@ import json
 import os
 
 from langchain_community.utilities import SQLDatabase
-from langchain_openai import ChatOpenAI
+from sqlalchemy import create_engine
 
 
 # Builds and runs the SQL agent
 def run_sql_agent(prompt):
-    llm = ChatOpenAI(model="gpt-4o-mini")
-    db = SQLDatabase.from_uri(f"mssql+pyodbc://{os.environ['DB_CONNECTION_STRING']}")
+    # llm = ChatOpenAI(model="gpt-4o-mini")
+    dbEngine = get_engine_for_sql_server_db()
+    db = SQLDatabase(dbEngine)
+    print(db.table_info)
 
 
 #    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
@@ -32,10 +34,18 @@ def run_sql_agent(prompt):
 # To start you should ALWAYS look at the tables in the database to see what you can query.
 # Do NOT skip this step.
 # Then you should query the schema of the most relevant tables."""
+#
+
+
+# Build SQLServer engine
+def get_engine_for_sql_server_db():
+    alchemyStr = os.environ.get("DB_ALCHEMY_CONNECTION_STRING")
+    connection_string = f"mssql+pyodbc://{alchemyStr}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+    return create_engine(connection_string)
 
 
 # Assign environment variables
-def _set_env(key: str, value: str):
+def _set_env(key: str, value):
     if key not in os.environ:
         os.environ[key] = value
 
