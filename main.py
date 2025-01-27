@@ -35,15 +35,15 @@ def run_sql_agent(prompt: str):
     agent_executor = create_react_agent(
         llm, toolkit.get_tools(), state_modifier=system_message
     )
-    print("Agent created.")
-    print("Executing agent...")
+    print("Info: Agent created.")
+    print("Info: Executing agent...")
     events = agent_executor.stream(
         {"messages": [("user", prompt)]},
         stream_mode="values",
     )
-    print("Agent executed.")
     for event in events:
         event["messages"][-1].pretty_print()
+    print("Info: Agent executed.")
 
 
 def init_sql_database():
@@ -52,7 +52,7 @@ def init_sql_database():
         raise ValueError("DB_ALCHEMY_CONNECTION_STRING is not set in the environment.")
     engine = create_engine(alchemyStr)
     db = SQLDatabase(engine)
-    print("Database connection established.")
+    print("Info: Database connection established.")
     return db
 
 
