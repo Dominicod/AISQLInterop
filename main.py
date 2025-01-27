@@ -11,7 +11,6 @@ def run_sql_agent(prompt):
     # llm = ChatOpenAI(model="gpt-4o-mini")
     dbEngine = get_engine_for_sql_server_db()
     db = SQLDatabase(dbEngine)
-    print(db.table_info)
 
 
 #    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
@@ -40,8 +39,10 @@ def run_sql_agent(prompt):
 # Build SQLServer engine
 def get_engine_for_sql_server_db():
     alchemyStr = os.environ.get("DB_ALCHEMY_CONNECTION_STRING")
-    connection_string = f"mssql+pyodbc://{alchemyStr}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
-    return create_engine(connection_string)
+    if alchemyStr is None:
+        raise ValueError("DB_ALCHEMY_CONNECTION_STRING is not set in the environment.")
+
+    return create_engine(alchemyStr)
 
 
 # Assign environment variables
