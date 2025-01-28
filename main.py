@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 
-from langchain import hub
 from langchain_community.tools.sql_database.tool import (
     InfoSQLDatabaseTool,
     ListSQLDatabaseTool,
@@ -11,7 +10,6 @@ from langchain_community.tools.sql_database.tool import (
 )
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import HumanMessage
-from langchain_core.messages.system import SystemMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from sqlalchemy import create_engine
@@ -19,11 +17,23 @@ from sqlalchemy import create_engine
 
 def run_sql_agent(prompt: HumanMessage):
     llm = ChatOllama(model="llama3.1", temperature=0)
-    prompt_template = hub.pull("langchain-ai/sql-agent-system-prompt")
-    system_message = SystemMessage(
-        prompt_template.format(dialect="SQLServer", top_k=5)
-        + "\n All tables will be captialized and plural."
-    )
+    system_message = """System: You are an agent designed to interact with a SQL database.
+    Given an input question, create a syntactically correct SQLServer query to run, then look at the results of the query and return the answer.
+    You can order the results by a relevant column to return the most interesting examples in the database.
+    Never query for all the columns from a specific table, only ask for the relevant columns given the question.
+    You have access to tools for interacting with the database.
+    Only use the below tools. Only use the information returned by the below tools to construct your final answer.
+    You MUST double check your query before executing it. If you get an error while executing a query, rewrite the query and try again.
+
+    DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
+
+    To start you should ALWAYS look at the tables in the database to see what you can query.
+    Do NOT skip this step.
+    Then you should query the schema of the most relevant tables.
+
+    Once you receive the data from a query, do not explain how you got the data, only provide the answer to the user's question.
+    All table names are captialized and plural.
+    """
 
     db = init_sql_database()
     info_sql_database_tool_description = """
