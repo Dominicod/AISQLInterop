@@ -3,9 +3,15 @@ import json
 import os
 
 from langchain import hub
-from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from langchain_community.tools.sql_database.tool import (
+    InfoSQLDatabaseTool,
+    ListSQLDatabaseTool,
+    QuerySQLCheckerTool,
+    QuerySQLDatabaseTool,
+)
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import HumanMessage
+from langchain_core.messages.system import SystemMessage
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from sqlalchemy import create_engine
@@ -14,14 +20,25 @@ from sqlalchemy import create_engine
 def run_sql_agent(prompt: HumanMessage):
     llm = ChatOllama(model="llama3.1", temperature=0)
     prompt_template = hub.pull("langchain-ai/sql-agent-system-prompt")
-    system_message = prompt_template.format(dialect="SQLServer", top_k=5)
+    system_message = SystemMessage(
+        prompt_template.format(dialect="SQLServer", top_k=5)
+        + "\n All tables will be captialized and plural."
+    )
 
     db = init_sql_database()
-    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+    info_sql_database_tool_description = """
+	    Input to this tool is a comma separated list of tables, output is the schema and sample rows for those tables.
+	    Be sure that the tables actually exist by calling list_tables_sql_db first!
+	    Example Input: table1, table2, table3"""
 
-    agent_executor = create_react_agent(
-        llm, toolkit.get_tools(), state_modifier=system_message
-    )
+    tools = [
+        QuerySQLCheckerTool(db=db, llm=llm),
+        InfoSQLDatabaseTool(db=db, description=info_sql_database_tool_description),
+        ListSQLDatabaseTool(db=db),
+        QuerySQLDatabaseTool(db=db),
+    ]
+
+    agent_executor = create_react_agent(llm, tools, state_modifier=system_message)
 
     events = agent_executor.stream(
         {"messages": prompt},
